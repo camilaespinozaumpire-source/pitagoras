@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuProfe20 Lab | Pitágoras en acción</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Fredoka & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- GSAP CDN with Fallback handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.min.js"></script>
+    <script>
+        // Fallback check for GSAP load
+        if (typeof gsap === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#2563EB',
+                            blueDark: '#1D4ED8',
+                            orange: '#F97316',
+                            orangeDark: '#EA580C',
+                            purple: '#9333EA',
+                            purpleDark: '#7E22CE',
+                            bg: '#F8FAFC',
+                        }
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        .btn-3d {
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
+        }
+        .btn-3d:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
+        }
+        .btn-3d:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .unit-square {
+            transition: stroke 0.2s, filter 0.2s;
+        }
+        .unit-square:hover {
+            filter: brightness(1.15);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* SVG Glow effects */
+        .glow-a { filter: drop-shadow(0px 0px 6px rgba(37, 99, 235, 0.6)); }
+        .glow-b { filter: drop-shadow(0px 0px 6px rgba(249, 115, 22, 0.6)); }
+        .glow-c { filter: drop-shadow(0px 0px 6px rgba(147, 51, 234, 0.6)); }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between select-none overflow-hidden text-slate-800">
+
+    <!-- HEADER / NAVIGATION BAR -->
+    <header class="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between shadow-sm z-20">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2 rounded-xl shadow-md">
+                <i class="fa-solid fa-shapes text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-fredoka text-xl font-bold text-slate-800 leading-tight">TuProfe20 Lab</h1>
+                <p class="text-xs text-slate-500 font-medium">Pitágoras en acción — Demostración Geométrico-Visual</p>
+            </div>
+        </div>
+
+        <!-- Mode & Quick Tools Controls -->
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <!-- Mode Switcher -->
+            <div class="bg-slate-100 p-1 rounded-xl flex border border-slate-200 text-xs font-semibold">
+                <button id="btnModeGuided" onclick="setMode('guided')" class="px-3 py-1.5 rounded-lg transition-all bg-white text-blue-600 shadow-sm">
+                    <i class="fa-solid fa-route mr-1"></i> Guiado
+                </button>
+                <button id="btnModeExplore" onclick="setMode('explore')" class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-compass mr-1"></i> Explorar
+                </button>
+            </div>
+
+            <!-- Sound toggle -->
+            <button id="btnAudio" onclick="toggleAudio()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition" title="Activar/Desactivar Sonido">
+                <i id="audioIcon" class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN LAB CONTENT AREA -->
+    <main class="flex-1 relative flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- SIDEBAR CONTROLS & INFO -->
+        <aside class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 p-4 flex flex-col justify-between z-10 shadow-sm overflow-y-auto">
+            <div class="space-y-4">
+                
+                <!-- Triangle Selector -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Seleccionar Triángulo Pitagórico</label>
+                    <div class="grid grid-cols-1 gap-2" id="triangleSelector">
+                        <!-- Triangle Buttons dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Interactive Question Card (Step Triggered) -->
+                <div id="questionCard" class="hidden bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 space-y-3 shadow-sm">
+                    <div class="flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-question text-amber-500 text-xl mt-0.5"></i>
+                        <p class="text-xs md:text-sm text-amber-900 font-semibold" id="questionText">
+                            ¿Cuántas unidades cuadradas necesitamos para llenar el cuadrado de la hipotenusa (c²)?
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="userAnswerInput" placeholder="Ej. 25" class="w-full px-3 py-1.5 rounded-lg border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-center text-slate-800">
+                        <button onclick="checkAnswer()" class="btn-3d bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-1.5 rounded-lg text-sm">
+                            Responder
+                        </button>
+                    </div>
+                    <p id="answerFeedback" class="text-xs font-semibold text-center hidden"></p>
+                </div>
+
+                <!-- Animated Math Formula Card -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ecuación de Áreas</span>
+                    <div id="equationDisplay" class="font-fredoka text-base md:text-lg text-slate-700 flex flex-wrap justify-center items-center gap-1">
+                        <span class="text-blue-600 font-bold">a²</span> + 
+                        <span class="text-orange-600 font-bold">b²</span> = 
+                        <span class="text-purple-600 font-bold">c²</span>
+                    </div>
+                    <div id="equationValues" class="font-fredoka text-lg md:text-xl font-bold mt-1 text-slate-900">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Robot Guide Assistant -->
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-3 flex items-start space-x-3">
+                    <div class="relative">
+                        <div class="w-12 h-12 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                    </div>
+                    <div class="flex-1 text-xs">
+                        <span class="font-bold text-blue-900 block font-fredoka text-sm">ProfeBot</span>
+                        <p id="robotMessage" class="text-slate-600 leading-tight mt-0.5">
+                            ¡Hola! Selecciona un triángulo y presiona <strong>¡Comprobar!</strong> para ver la magia de la geometría.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Disclaimer note -->
+            <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 leading-tight">
+                <p><i class="fa-solid fa-info-circle mr-1"></i> <strong>Nota pedagógica:</strong> Estos ejemplos comprueban el teorema visualmente para casos enteros específicos; no constituyen una demostración formal exhaustiva para todo triángulo rectángulo.</p>
+            </div>
+        </aside>
+
+        <!-- SVG INTERACTIVE CANVAS -->
+        <section class="flex-1 relative flex flex-col justify-center items-center bg-slate-50 overflow-hidden">
+            
+            <!-- Floating Canvas Tools -->
+            <div class="absolute top-4 right-4 z-10 flex space-x-2 bg-white/90 backdrop-blur border border-slate-200 p-1.5 rounded-2xl shadow-sm">
+                <button onclick="resetZoom()" class="px-3 py-1.5 rounded-xl hover:bg-slate-100 text-xs font-semibold text-slate-700 transition" title="Restablecer Encuadre">
+                    <i class="fa-solid fa-expand mr-1"></i> Ver Todo
+                </button>
+                <button id="btnGridToggle" onclick="toggleGrid()" class="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-semibold text-slate-700 transition" title="Ocultar/Mostrar Cuadrícula">
+                    <i class="fa-solid fa-border-all mr-1"></i> Cuadrícula
+                </button>
+            </div>
+
+            <!-- SVG Container -->
+            <div id="svgContainer" class="w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing">
+                <svg id="geoSvg" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <!-- Fine Grid Pattern -->
+                        <pattern id="bgGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+
+                    <!-- Background grid -->
+                    <rect id="gridBackground" width="100%" height="100%" fill="url(#bgGrid)" />
+
+                    <!-- Main Transformable Group -->
+                    <g id="viewportGroup">
+                        <!-- Triangles & Squares rendered via JS -->
+                        <g id="squaresLayer"></g>
+                        <g id="triangleLayer"></g>
+                        <g id="gridLinesLayer"></g>
+                        <g id="piecesLayer"></g>
+                        <g id="labelsLayer"></g>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Animated Proof Final Banner -->
+            <div id="conclusionBanner" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl font-fredoka text-sm md:text-base font-bold flex items-center space-x-3 transform translate-y-24 opacity-0 transition-all duration-500 z-20 pointer-events-none">
+                <i class="fa-solid fa-circle-check text-2xl text-emerald-200"></i>
+                <span>¡Las áreas de los cuadrados de los catetos suman exactamente el área del cuadrado de la hipotenusa!</span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER ACTION CONTROLS -->
+    <footer class="bg-white border-t border-slate-200 px-4 py-3 z-20 shadow-lg">
+        <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Playback Control Buttons -->
+            <div class="flex items-center space-x-2">
+                <button id="btnPlayPause" onclick="togglePlayPause()" class="btn-3d bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-play" id="playIcon"></i>
+                    <span id="playText">Reproducir</span>
+                </button>
+
+                <button id="btnNextStep" onclick="nextStep()" class="btn-3d bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center space-x-1">
+                    <span>Siguiente</span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+
+                <button id="btnReset" onclick="resetSimulation()" class="btn-3d bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2 rounded-xl text-sm" title="Reiniciar">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+
+                <button id="btnProve" onclick="startProofAnimation()" class="btn-3d bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>¡Comprobar!</span>
+                </button>
+            </div>
+
+            <!-- Speed Control Slider -->
+            <div class="flex items-center space-x-3 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                <span class="text-xs font-bold text-slate-500"><i class="fa-solid fa-gauge-high mr-1"></i> Velocidad:</span>
+                <input type="range" id="speedSlider" min="0.5" max="3" step="0.5" value="1" onchange="updateSpeed(this.value)" class="w-20 md:w-28 accent-blue-600 cursor-pointer">
+                <span id="speedVal" class="text-xs font-bold text-slate-700 w-8">1.0x</span>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE SCRIPT LOGIC -->
+    <script>
+        /**
+         * Simulation State & Datasets
+         */
+        const TRIANGLES = [
+            { a: 3, b: 4, c: 5, label: "3 - 4 - 5" },
+            { a: 5, b: 12, c: 13, label: "5 - 12 - 13" },
+            { a: 6, b: 8, c: 10, label: "6 - 8 - 10" },
+            { a: 8, b: 15, c: 17, label: "8 - 15 - 17" },
+            { a: 7, b: 24, c: 25, label: "7 - 24 - 25" }
+        ];
+
+        let currentIndex = 0;
+        let currentMode = 'guided'; // 'guided' | 'explore'
+        let currentStep = 1; // 1: Intro, 2: Squares built, 3: Grids counted, 4: Question, 5: Proof
+        let isPlaying = false;
+        let animSpeed = 1.0;
+        let audioEnabled = true;
+        let showGrid = true;
+        let activeTimeline = null;
+        let audioCtx = null;
+
+        // Viewport scale & pan settings
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
+
+        // Scale factor: pixels per unit
+        const UNIT_SIZE = 24; 
+
+        /**
+         * Audio Synthesizer (Web Audio API)
+         */
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'step') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'place') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'success') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        g.gain.setValueAtTime(0.12, now + idx * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+                        o.start(now + idx * 0.08);
+                        o.stop(now + idx * 0.08 + 0.2);
+                    });
+                }
+            } catch(e) {
+                console.warn("Audio error:", e);
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const btn = document.getElementById('btnAudio');
+            if (audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-lg';
+                btn.classList.remove('opacity-50');
+                playSound('click');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg';
+                btn.classList.add('opacity-50');
+            }
+        }
+
+        /**
+         * Initialization & UI Population
+         */
+        window.onload = () => {
+            renderSelectorButtons();
+            loadTriangle(0);
+            setupPanZoom();
+
+            window.addEventListener('resize', () => {
+                fitToScreen();
+            });
+        };
+
+        function renderSelectorButtons() {
+            const container = document.getElementById('triangleSelector');
+            container.innerHTML = '';
+            TRIANGLES.forEach((t, idx) => {
+                const btn = document.createElement('button');
+                btn.id = `btn-tri-${idx}`;
+                btn.className = `btn-3d w-full py-2 px-3 rounded-xl font-fredoka font-semibold text-xs flex justify-between items-center transition border ${
+                    idx === currentIndex 
+                    ? 'bg-blue-600 text-white border-blue-700' 
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                }`;
+                btn.onclick = () => {
+                    playSound('click');
+                    loadTriangle(idx);
+                };
+                btn.innerHTML = `
+                    <span>Triángulo ${t.label}</span>
+                    <span class="text-[10px] opacity-80 bg-black/10 px-2 py-0.5 rounded-full">${t.a}² + ${t.b}² = ${t.c}²</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            playSound('click');
+            const btnGuided = document.getElementById('btnModeGuided');
+            const btnExplore = document.getElementById('btnModeExplore');
+            
+            if (mode === 'guided') {
+                btnGuided.className = 'px-3 py-1.5 rounded-lg transition-all bg-white text-blue-600 shadow-sm font-semibold';
+                btnExplore.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-semibold';
+                setRobotMessage('Modo Guiado activo. Te guiaré paso a paso por la demostración.');
+            } else {
+                btnExplore.className = 'px-3 py-1.5 rounded-lg transition-all bg-white text-blue-600 shadow-sm font-semibold';
+                btnGuided.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-semibold';
+                setRobotMessage('Modo Exploración. Elige cualquier triángulo y presiona ¡Comprobar!');
+            }
+        }
+
+        /**
+         * Geometry Calculations & SVG Construction
+         */
+        function loadTriangle(index) {
+            killActiveAnimations();
+            currentIndex = index;
+            currentStep = 1;
+            
+            // Update selector UI
+            TRIANGLES.forEach((_, idx) => {
+                const btn = document.getElementById(`btn-tri-${idx}`);
+                if (btn) {
+                    if (idx === currentIndex) {
+                        btn.className = 'btn-3d w-full py-2 px-3 rounded-xl font-fredoka font-semibold text-xs flex justify-between items-center bg-blue-600 text-white border border-blue-700';
+                    } else {
+                        btn.className = 'btn-3d w-full py-2 px-3 rounded-xl font-fredoka font-semibold text-xs flex justify-between items-center bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200';
+                    }
+                }
+            });
+
+            const t = TRIANGLES[currentIndex];
+            
+            // Update Equation Card
+            document.getElementById('equationValues').innerHTML = `
+                <span class="text-blue-600">${t.a}²</span> + 
+                <span class="text-orange-600">${t.b}²</span> = 
+                <span class="text-purple-600">${t.c}²</span> 
+                <span class="text-slate-400 font-normal mx-1">→</span> 
+                <span class="text-blue-600">${t.a * t.a}</span> + 
+                <span class="text-orange-600">${t.b * t.b}</span> = 
+                <span class="text-purple-600">${t.c * t.c}</span>
+            `;
+
+            // Reset UI states
+            document.getElementById('conclusionBanner').classList.add('translate-y-24', 'opacity-0');
+            document.getElementById('questionCard').classList.add('hidden');
+            document.getElementById('answerFeedback').classList.add('hidden');
+            document.getElementById('userAnswerInput').value = '';
+
+            buildSceneGeometry(t);
+            fitToScreen();
+            setRobotMessage(`Triángulo rectángulo de lados a = ${t.a}, b = ${t.b}, c = ${t.c}. Observa el ángulo recto.`);
+        }
+
+        function buildSceneGeometry(t) {
+            const u = UNIT_SIZE;
+            const aPx = t.a * u;
+            const bPx = t.b * u;
+            const cPx = t.c * u;
+
+            // Geometry Vertices:
+            // Right angle at origin (0,0) C.
+            // Point A at (0, -aPx)
+            // Point B at (bPx, 0)
+            const C = { x: 0, y: 0 };
+            const A = { x: 0, y: -aPx };
+            const B = { x: bPx, y: 0 };
+
+            // Square A (Side a: C to A -> facing left)
+            // Vertices: C(0,0), A(0, -aPx), A2(-aPx, -aPx), C2(-aPx, 0)
+            const sqA = [
+                { x: 0, y: 0 },
+                { x: 0, y: -aPx },
+                { x: -aPx, y: -aPx },
+                { x: -aPx, y: 0 }
+            ];
+
+            // Square B (Side b: C to B -> facing down)
+            // Vertices: C(0,0), B(bPx, 0), B2(bPx, bPx), C3(0, bPx)
+            const sqB = [
+                { x: 0, y: 0 },
+                { x: bPx, y: 0 },
+                { x: bPx, y: bPx },
+                { x: 0, y: bPx }
+            ];
+
+            // Square C (Side c: A to B -> exterior vector)
+            // AB vector: (bPx, aPx). Perpendicular exterior: (-aPx, bPx)
+            const sqC = [
+                { x: A.x, y: A.y },
+                { x: B.x, y: B.y },
+                { x: B.x - aPx, y: B.y + bPx },
+                { x: A.x - aPx, y: A.y + bPx }
+            ];
+
+            // Render Layers
+            const squaresLayer = document.getElementById('squaresLayer');
+            const triangleLayer = document.getElementById('triangleLayer');
+            const gridLinesLayer = document.getElementById('gridLinesLayer');
+            const piecesLayer = document.getElementById('piecesLayer');
+            const labelsLayer = document.getElementById('labelsLayer');
+
+            squaresLayer.innerHTML = '';
+            triangleLayer.innerHTML = '';
+            gridLinesLayer.innerHTML = '';
+            piecesLayer.innerHTML = '';
+            labelsLayer.innerHTML = '';
+
+            // 1. Draw Squares Backgrounds
+            squaresLayer.appendChild(createPolygon(sqA, 'fill-blue-50 stroke-blue-500 stroke-2', 'sqA-bg'));
+            squaresLayer.appendChild(createPolygon(sqB, 'fill-orange-50 stroke-orange-500 stroke-2', 'sqB-bg'));
+            squaresLayer.appendChild(createPolygon(sqC, 'fill-purple-50 stroke-purple-500 stroke-2', 'sqC-bg'));
+
+            // 2. Grid lines inside source squares
+            drawSquareGrids(gridLinesLayer, t, sqA, sqB, sqC);
+
+            // 3. Draw Right Triangle & Right Angle Symbol
+            const triPath = `M ${C.x} ${C.y} L ${A.x} ${A.y} L ${B.x} ${B.y} Z`;
+            const triElem = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            triElem.setAttribute('d', triPath);
+            triElem.setAttribute('class', 'fill-amber-100/60 stroke-slate-700 stroke-3');
+            triangleLayer.appendChild(triElem);
+
+            // Right angle symbol (square mark)
+            const sqMarkSize = 14;
+            const rightAngleMark = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            rightAngleMark.setAttribute('d', `M 0 ${-sqMarkSize} L ${sqMarkSize} ${-sqMarkSize} L ${sqMarkSize} 0`);
+            rightAngleMark.setAttribute('class', 'fill-none stroke-slate-700 stroke-2');
+            triangleLayer.appendChild(rightAngleMark);
+
+            // 4. Generate Interactive Unit Square Pieces (Cateto A & B)
+            generateUnitSquarePieces(piecesLayer, t);
+
+            // 5. Render Labels
+            renderLabels(labelsLayer, t, A, B, C, sqA, sqB, sqC);
+        }
+
+        function createPolygon(points, className, id = '') {
+            const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            const ptsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+            poly.setAttribute('points', ptsStr);
+            poly.setAttribute('class', className);
+            if (id) poly.setAttribute('id', id);
+            return poly;
+        }
+
+        function drawSquareGrids(container, t, sqA, sqB, sqC) {
+            const u = UNIT_SIZE;
+
+            // Cateto A grid
+            for (let i = 0; i <= t.a; i++) {
+                container.appendChild(createLine(-i * u, 0, -i * u, -t.a * u, 'stroke-blue-200 stroke-1'));
+                container.appendChild(createLine(0, -i * u, -t.a * u, -i * u, 'stroke-blue-200 stroke-1'));
+            }
+
+            // Cateto B grid
+            for (let i = 0; i <= t.b; i++) {
+                container.appendChild(createLine(i * u, 0, i * u, t.b * u, 'stroke-orange-200 stroke-1'));
+                container.appendChild(createLine(0, i * u, t.b * u, i * u, 'stroke-orange-200 stroke-1'));
+            }
+
+            // Hipotenusa C grid (rotated grid)
+            // Base vector along side C: ux = (Bx - Ax)/c, uy = (By - Ay)/c
+            const ux = (t.b * u) / t.c;
+            const uy = (t.a * u) / t.c;
+            // Perpendicular vector: vx = -uy, vy = ux
+            const vx = -uy;
+            const vy = ux;
+
+            const Ax = 0, Ay = -t.a * u;
+
+            for (let i = 0; i <= t.c; i++) {
+                // Lines parallel to perpendicular vector
+                const p1x = Ax + i * u * ux;
+                const p1y = Ay + i * u * uy;
+                const p2x = p1x + t.c * u * vx;
+                const p2y = p1y + t.c * u * vy;
+                container.appendChild(createLine(p1x, p1y, p2x, p2y, 'stroke-purple-200 stroke-1 target-grid-line'));
+
+                // Lines parallel to side C
+                const q1x = Ax + i * u * vx;
+                const q1y = Ay + i * u * vy;
+                const q2x = q1x + t.c * u * ux;
+                const q2y = q1y + t.c * u * uy;
+                container.appendChild(createLine(q1x, q1y, q2x, q2y, 'stroke-purple-200 stroke-1 target-grid-line'));
+            }
+        }
+
+        function createLine(x1, y1, x2, y2, className) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('class', className);
+            return line;
+        }
+
+        function generateUnitSquarePieces(container, t) {
+            const u = UNIT_SIZE;
+            let pieceId = 0;
+
+            // Cateto A Pieces (Blue)
+            for (let row = 0; row < t.a; row++) {
+                for (let col = 0; col < t.a; col++) {
+                    const x = -(col + 1) * u;
+                    const y = -(row + 1) * u;
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', x);
+                    rect.setAttribute('y', y);
+                    rect.setAttribute('width', u);
+                    rect.setAttribute('height', u);
+                    rect.setAttribute('class', 'unit-square fill-blue-500 stroke-blue-700 stroke-1 opacity-90 cursor-pointer');
+                    rect.setAttribute('id', `piece-a-${pieceId}`);
+                    rect.dataset.originX = x;
+                    rect.dataset.originY = y;
+                    rect.dataset.type = 'a';
+                    rect.dataset.index = pieceId;
+
+                    // Hover tooltips
+                    rect.onmouseenter = () => highlightPiece(rect, `Cateto a (1 u²)`);
+                    rect.onmouseleave = () => resetHighlight(rect);
+
+                    container.appendChild(rect);
+                    pieceId++;
+                }
+            }
+
+            // Cateto B Pieces (Orange)
+            pieceId = 0;
+            for (let row = 0; row < t.b; row++) {
+                for (let col = 0; col < t.b; col++) {
+                    const x = col * u;
+                    const y = row * u;
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', x);
+                    rect.setAttribute('y', y);
+                    rect.setAttribute('width', u);
+                    rect.setAttribute('height', u);
+                    rect.setAttribute('class', 'unit-square fill-orange-500 stroke-orange-700 stroke-1 opacity-90 cursor-pointer');
+                    rect.setAttribute('id', `piece-b-${pieceId}`);
+                    rect.dataset.originX = x;
+                    rect.dataset.originY = y;
+                    rect.dataset.type = 'b';
+                    rect.dataset.index = pieceId;
+
+                    rect.onmouseenter = () => highlightPiece(rect, `Cateto b (1 u²)`);
+                    rect.onmouseleave = () => resetHighlight(rect);
+
+                    container.appendChild(rect);
+                    pieceId++;
+                }
+            }
+        }
+
+        function renderLabels(container, t, A, B, C, sqA, sqB, sqC) {
+            const u = UNIT_SIZE;
+
+            // Cateto A label
+            const lblA = createText(`a = ${t.a} u`, -t.a * u / 2, -t.a * u / 2, 'fill-blue-700 font-bold font-fredoka text-xs text-anchor-middle');
+            lblA.setAttribute('x', -t.a * u - 25);
+            lblA.setAttribute('y', -t.a * u / 2);
+            container.appendChild(lblA);
+
+            const areaA = createText(`a² = ${t.a * t.a} u²`, -t.a * u / 2, -t.a * u / 2, 'fill-blue-900 font-bold font-fredoka text-sm');
+            areaA.setAttribute('text-anchor', 'middle');
+            container.appendChild(areaA);
+
+            // Cateto B label
+            const lblB = createText(`b = ${t.b} u`, t.b * u / 2, t.b * u + 20, 'fill-orange-700 font-bold font-fredoka text-xs');
+            lblB.setAttribute('text-anchor', 'middle');
+            container.appendChild(lblB);
+
+            const areaB = createText(`b² = ${t.b * t.b} u²`, t.b * u / 2, t.b * u / 2 + 5, 'fill-orange-900 font-bold font-fredoka text-sm');
+            areaB.setAttribute('text-anchor', 'middle');
+            container.appendChild(areaB);
+
+            // Hipotenusa C label
+            const centerX = (sqC[0].x + sqC[1].x + sqC[2].x + sqC[3].x) / 4;
+            const centerY = (sqC[0].y + sqC[1].y + sqC[2].y + sqC[3].y) / 4;
+
+            const areaC = createText(`c² = ${t.c * t.c} u²`, centerX, centerY, 'fill-purple-900 font-bold font-fredoka text-base');
+            areaC.setAttribute('text-anchor', 'middle');
+            container.appendChild(areaC);
+
+            const lblC = createText(`c = ${t.c} u`, (A.x + B.x) / 2 + 15, (A.y + B.y) / 2 - 15, 'fill-purple-700 font-bold font-fredoka text-xs');
+            container.appendChild(lblC);
+        }
+
+        function createText(str, x, y, className) {
+            const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            txt.setAttribute('x', x);
+            txt.setAttribute('y', y);
+            txt.setAttribute('class', className);
+            txt.textContent = str;
+            return txt;
+        }
+
+        function highlightPiece(el, text) {
+            el.setAttribute('stroke-width', '3');
+            setRobotMessage(text);
+        }
+
+        function resetHighlight(el) {
+            el.setAttribute('stroke-width', '1');
+        }
+
+        /**
+         * Animated Proof Timeline & GSAP Transfers
+         */
+        function startProofAnimation() {
+            const t = TRIANGLES[currentIndex];
+            killActiveAnimations();
+            playSound('step');
+
+            // Hide question card if showing
+            document.getElementById('questionCard').classList.add('hidden');
+
+            const u = UNIT_SIZE;
+            const totalA = t.a * t.a;
+            const totalB = t.b * t.b;
+            const totalC = t.c * t.c;
+
+            // Compute target grid cell positions in Hipotenusa C Square
+            // Hipotenusa square vectors
+            const ux = (t.b * u) / t.c;
+            const uy = (t.a * u) / t.c;
+            const vx = -uy;
+            const vy = ux;
+
+            const Ax = 0, Ay = -t.a * u;
+            const angleRad = Math.atan2(t.a, t.b);
+            const angleDeg = angleRad * (180 / Math.PI);
+
+            // Precompute target coordinates for all c² cells
+            const targetPositions = [];
+            for (let i = 0; i < totalC; i++) {
+                const row = Math.floor(i / t.c);
+                const col = i % t.c;
+
+                // Corner position of target cell (col, row)
+                const tx = Ax + col * u * ux + row * u * vx;
+                const ty = Ay + col * u * uy + row * u * vy;
+
+                targetPositions.push({ x: tx, y: ty });
+            }
+
+            // Create animation GSAP Timeline
+            activeTimeline = gsap.timeline({
+                onStart: () => {
+                    isPlaying = true;
+                    updatePlayButtons();
+                    setRobotMessage(`Trasladando los ${totalA} cuadraditos azules (a²) y los ${totalB} naranjas (b²)...`);
+                },
+                onComplete: () => {
+                    isPlaying = false;
+                    updatePlayButtons();
+                    playSound('success');
+                    document.getElementById('conclusionBanner').classList.remove('translate-y-24', 'opacity-0');
+                    setRobotMessage(`¡Comprobación completa! ${totalA} + ${totalB} = ${totalC}. El cuadrado c² está 100% lleno sin huecos.`);
+                }
+            });
+
+            // Adjust speed dynamically
+            activeTimeline.timeScale(animSpeed);
+
+            // 1. Move Cateto A pieces first (Blue)
+            const piecesA = [];
+            for (let i = 0; i < totalA; i++) {
+                piecesA.push(document.getElementById(`piece-a-${i}`));
+            }
+
+            // Group staggered animation for performance and clear visualization
+            const batchSize = Math.max(1, Math.floor(totalA / 10));
+            
+            piecesA.forEach((piece, idx) => {
+                const target = targetPositions[idx];
+                const origX = parseFloat(piece.dataset.originX);
+                const origY = parseFloat(piece.dataset.originY);
+
+                // Calculate required translation & rotation
+                const deltaX = target.x - origX;
+                const deltaY = target.y - origY;
+
+                activeTimeline.to(piece, {
+                    x: deltaX,
+                    y: deltaY,
+                    rotation: angleDeg,
+                    transformOrigin: "0% 0%",
+                    duration: 0.6,
+                    ease: "power2.inOut",
+                    onStart: () => {
+                        if (idx % batchSize === 0) playSound('place');
+                    }
+                }, idx * (0.4 / totalA));
+            });
+
+            // 2. Move Cateto B pieces next (Orange) into remaining cells
+            const piecesB = [];
+            for (let i = 0; i < totalB; i++) {
+                piecesB.push(document.getElementById(`piece-b-${i}`));
+            }
+
+            const offsetTarget = totalA; // Start placing after A's cells
+            piecesB.forEach((piece, idx) => {
+                const target = targetPositions[offsetTarget + idx];
+                const origX = parseFloat(piece.dataset.originX);
+                const origY = parseFloat(piece.dataset.originY);
+
+                const deltaX = target.x - origX;
+                const deltaY = target.y - origY;
+
+                activeTimeline.to(piece, {
+                    x: deltaX,
+                    y: deltaY,
+                    rotation: angleDeg,
+                    transformOrigin: "0% 0%",
+                    duration: 0.6,
+                    ease: "power2.inOut",
+                    onStart: () => {
+                        if (idx % batchSize === 0) playSound('place');
+                    }
+                }, totalA * (0.4 / totalA) + idx * (0.5 / totalB));
+            });
+        }
+
+        function nextStep() {
+            playSound('step');
+            const t = TRIANGLES[currentIndex];
+            currentStep++;
+
+            if (currentStep === 2) {
+                setRobotMessage(`Paso 2: Se han construido los tres cuadrados exteriores sobre sus lados.`);
+            } else if (currentStep === 3) {
+                setRobotMessage(`Paso 3: Revelamos las cuadrículas: Cateto a = ${t.a * t.a} u², Cateto b = ${t.b * t.b} u².`);
+            } else if (currentStep === 4) {
+                // Trigger interactive question card
+                document.getElementById('questionCard').classList.remove('hidden');
+                document.getElementById('userAnswerInput').focus();
+                setRobotMessage(`¡Pregunta! ¿Cuántas unidades cuadradas tiene la hipotenusa (c²)?`);
+            } else if (currentStep >= 5) {
+                startProofAnimation();
+            }
+        }
+
+        function checkAnswer() {
+            const t = TRIANGLES[currentIndex];
+            const expected = t.c * t.c;
+            const userVal = parseInt(document.getElementById('userAnswerInput').value, 10);
+            const feedback = document.getElementById('answerFeedback');
+
+            feedback.classList.remove('hidden');
+            if (userVal === expected) {
+                feedback.className = 'text-xs font-bold text-center text-emerald-600 block mt-1';
+                feedback.innerHTML = `<i class="fa-solid fa-circle-check"></i> ¡Correcto! ${t.c}² = ${expected} unidades cuadradas.`;
+                playSound('success');
+                setTimeout(() => {
+                    startProofAnimation();
+                }, 1000);
+            } else {
+                feedback.className = 'text-xs font-bold text-center text-rose-600 block mt-1';
+                feedback.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Recuerda: ${t.a}² (${t.a*t.a}) + ${t.b}² (${t.b*t.b}). Inténtalo de nuevo.`;
+            }
+        }
+
+        function togglePlayPause() {
+            playSound('click');
+            if (activeTimeline && activeTimeline.isActive()) {
+                if (activeTimeline.paused()) {
+                    activeTimeline.play();
+                    isPlaying = true;
+                } else {
+                    activeTimeline.pause();
+                    isPlaying = false;
+                }
+            } else {
+                startProofAnimation();
+            }
+            updatePlayButtons();
+        }
+
+        function updatePlayButtons() {
+            const icon = document.getElementById('playIcon');
+            const txt = document.getElementById('playText');
+            if (isPlaying) {
+                icon.className = 'fa-solid fa-pause';
+                txt.textContent = 'Pausar';
+            } else {
+                icon.className = 'fa-solid fa-play';
+                txt.textContent = 'Reproducir';
+            }
+        }
+
+        function resetSimulation() {
+            playSound('click');
+            loadTriangle(currentIndex);
+        }
+
+        function updateSpeed(val) {
+            animSpeed = parseFloat(val);
+            document.getElementById('speedVal').textContent = `${animSpeed.toFixed(1)}x`;
+            if (activeTimeline) {
+                activeTimeline.timeScale(animSpeed);
+            }
+        }
+
+        function toggleGrid() {
+            playSound('click');
+            showGrid = !showGrid;
+            const gridLines = document.querySelectorAll('.target-grid-line');
+            gridLines.forEach(line => {
+                line.style.display = showGrid ? 'block' : 'none';
+            });
+            const btn = document.getElementById('btnGridToggle');
+            if (showGrid) {
+                btn.classList.add('bg-slate-100');
+                btn.classList.remove('opacity-50');
+            } else {
+                btn.classList.remove('bg-slate-100');
+                btn.classList.add('opacity-50');
+            }
+        }
+
+        function setRobotMessage(msg) {
+            const elem = document.getElementById('robotMessage');
+            if (elem) elem.innerHTML = msg;
+        }
+
+        function killActiveAnimations() {
+            if (activeTimeline) {
+                activeTimeline.kill();
+                activeTimeline = null;
+            }
+            isPlaying = false;
+            updatePlayButtons();
+        }
+
+        /**
+         * SVG Viewport Scaling & Auto-fit Pan/Zoom
+         */
+        function fitToScreen() {
+            const svg = document.getElementById('geoSvg');
+            const viewport = document.getElementById('viewportGroup');
+            const container = document.getElementById('svgContainer');
+
+            const t = TRIANGLES[currentIndex];
+            const u = UNIT_SIZE;
+
+            // Bounding box of construction
+            const minX = -t.a * u - 40;
+            const maxX = (t.b + t.c) * u + 40;
+            const minY = -t.a * u - t.c * u - 40;
+            const maxY = (t.b + t.c) * u + 40;
+
+            const bboxWidth = maxX - minX;
+            const bboxHeight = maxY - minY;
+
+            const cWidth = container.clientWidth || 800;
+            const cHeight = container.clientHeight || 600;
+
+            scale = Math.min(cWidth / bboxWidth, cHeight / bboxHeight) * 0.85;
+            
+            // Center scene
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            panX = cWidth / 2 - centerX * scale;
+            panY = cHeight / 2 - centerY * scale;
+
+            updateViewportTransform();
+        }
+
+        function updateViewportTransform() {
+            const viewport = document.getElementById('viewportGroup');
+            viewport.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+        }
+
+        function resetZoom() {
+            playSound('click');
+            fitToScreen();
+        }
+
+        function setupPanZoom() {
+            const container = document.getElementById('svgContainer');
+            let isDragging = false;
+            let startX, startY;
+
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                updateViewportTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Touch Support for mobile/tablets
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    startX = e.touches[0].clientX - panX;
+                    startY = e.touches[0].clientY - panY;
+                }
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updateViewportTransform();
+            });
+
+            container.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+    </script>
+</body>
+</html>
